@@ -46,7 +46,7 @@ const fetchMyIP = function(callback) {
  *     { latitude: '49.27670', longitude: '-123.13000' }
  */
 const fetchCoordsByIP = function(ip, callback) {
-  request(`http://ip-api.com/json/${ip}`, (error, response, body) => {
+  request(`https://freegeoip.app/json/`, (error, response, body) => {
     if (error) return callback(error, null);
 
     if (response.statusCode !== 200) {
@@ -54,8 +54,8 @@ const fetchCoordsByIP = function(ip, callback) {
       return;
     }
 
-    const { lat, lon } = JSON.parse(body);
-    callback(null, { lat, lon});
+    const { latitude, longitude } = JSON.parse(body);
+    callback(null, { latitude, longitude});
   });
 };
 
@@ -84,8 +84,35 @@ const fetchISSFlyOverTimes = function(coords, callback) {
   });
 };
 
+/**
+ * Orchestrates multiple API requests in order to determine the next 5 upcoming ISS fly overs for the user's current location.
+ * Input:
+ *   - A callback with an error or results.
+ * Returns (via Callback):
+ *   - An error, if any (nullable)
+ *   - The fly-over times as an array (null if error):
+ *     [ { risetime: <number>, duration: <number> }, ... ]
+ */
+const nextISSTimesForMyLocation = function(callback) {
+  fetchMyIP((error, ip) => {
+    if (error) return callback(error, null);
+
+    fetchCoordsByIP(ip, (error, coords) => {
+      if (error) return callback(error, null);
+
+      fetchISSFlyOverTimes(coords, (error, nextPasses) => {
+        if (error) return callback(error, null);
+
+        callback(null, nextPasses);
+      });
+    });
+  });
+};
+
+
 module.exports = {
-  //fetchMyIP
-  //fetchCoordsByIP
-  fetchISSFlyOverTimes
+  fetchMyIP,
+  fetchCoordsByIP,
+  fetchISSFlyOverTimes,
+  nextISSTimesForMyLocation
 };
